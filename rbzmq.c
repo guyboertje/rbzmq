@@ -79,9 +79,9 @@ VALUE socket_type;
 static VALUE module_version (VALUE self_)
 {
     int major, minor, patch;
-    
+
     zmq_version(&major, &minor, &patch);
-    
+
     return rb_ary_new3 (3, INT2NUM (major), INT2NUM (minor), INT2NUM (patch));
 }
 
@@ -160,7 +160,7 @@ static VALUE context_close (VALUE self_)
 {
     void * ctx = NULL;
     Data_Get_Struct (self_, void, ctx);
-    
+
     if (ctx != NULL) {
         int rc = zmq_term (ctx);
         assert (rc == 0);
@@ -175,7 +175,7 @@ struct poll_state {
     int event;
     int nitems;
     zmq_pollitem_t *items;
-    VALUE io_objects;  
+    VALUE io_objects;
 };
 
 typedef VALUE(*iterfunc)(ANYARGS);
@@ -184,7 +184,7 @@ static VALUE poll_add_item(VALUE io_, void *ps_) {
     struct poll_state *state = (struct poll_state *)ps_;
 
     long i;
-    
+
     for (i = 0; i < RARRAY_LEN (state->io_objects); i++) {
         if (RARRAY_PTR (state->io_objects)[i] == io_) {
 #ifdef HAVE_RUBY_IO_H
@@ -198,7 +198,7 @@ static VALUE poll_add_item(VALUE io_, void *ps_) {
 
             OpenFile *fptr;
             GetOpenFile (io_, fptr);
-            
+
             if (state->event == ZMQ_POLLOUT &&
                 GetWriteFile (fptr) != NULL &&
                 fileno (GetWriteFile (fptr)) != state->items[i].fd) {
@@ -211,10 +211,10 @@ static VALUE poll_add_item(VALUE io_, void *ps_) {
 #endif
         }
     }
-    
+
     /* Not found in array.  Add a new poll item. */
     rb_ary_push (state->io_objects, io_);
-    
+
     zmq_pollitem_t *item = &state->items[state->nitems];
     state->nitems++;
 
@@ -234,9 +234,9 @@ static VALUE poll_add_item(VALUE io_, void *ps_) {
         item->fd = fileno (rb_io_stdio_file (fptr));
 #else
         OpenFile *fptr;
-        
+
         GetOpenFile (io_, fptr);
-        
+
         if (state->event == ZMQ_POLLIN && GetReadFile (fptr) != NULL) {
             item->fd = fileno (GetReadFile (fptr));
         }
@@ -251,7 +251,7 @@ static VALUE poll_add_item(VALUE io_, void *ps_) {
         }
 #endif
     }
-    
+
     return Qnil;
 }
 
@@ -267,9 +267,9 @@ struct zmq_poll_args {
 static VALUE zmq_poll_blocking (void* args_)
 {
     struct zmq_poll_args *poll_args = (struct zmq_poll_args *)args_;
-    
+
     poll_args->rc = zmq_poll (poll_args->items, poll_args->nitems, poll_args->timeout_usec);
-    
+
     return Qnil;
 }
 
@@ -309,7 +309,7 @@ static VALUE internal_select(VALUE argval)
         ps.event = ZMQ_POLLERR;
         rb_iterate(rb_each, arg->errset, (iterfunc)poll_add_item, (VALUE)&ps);
     }
-    
+
     /* Reset nitems to the actual number of zmq_pollitem_t records we're sending. */
     nitems = ps.nitems;
 
@@ -326,22 +326,22 @@ static VALUE internal_select(VALUE argval)
     else
 #endif
         rc = zmq_poll (ps.items, ps.nitems, arg->timeout_usec);
-    
+
     if (rc == -1) {
         rb_raise(rb_eRuntimeError, "%s", zmq_strerror (zmq_errno ()));
         return Qnil;
     }
     else if (rc == 0)
         return Qnil;
-    
+
     VALUE read_active = rb_ary_new ();
     VALUE write_active = rb_ary_new ();
     VALUE err_active = rb_ary_new ();
-    
+
     for (i = 0, item = &ps.items[0]; i < nitems; i++, item++) {
         if (item->revents != 0) {
             VALUE io = RARRAY_PTR (ps.io_objects)[i];
-            
+
             if (item->revents & ZMQ_POLLIN)
                 rb_ary_push (read_active, io);
             if (item->revents & ZMQ_POLLOUT)
@@ -350,7 +350,7 @@ static VALUE internal_select(VALUE argval)
                 rb_ary_push (err_active, io);
         }
     }
-    
+
     return rb_ary_new3 (3, read_active, write_active, err_active);
 }
 
@@ -393,7 +393,7 @@ static VALUE module_select (int argc_, VALUE* argv_, VALUE self_)
     if (!NIL_P (readset)) Check_Type (readset, T_ARRAY);
     if (!NIL_P (writeset)) Check_Type (writeset, T_ARRAY);
     if (!NIL_P (errset)) Check_Type (errset, T_ARRAY);
-    
+
     if (NIL_P (timeout))
         timeout_usec = -1;
     else
@@ -726,7 +726,7 @@ static VALUE context_socket (VALUE self_, VALUE type_)
  *
  * The ZMQ::Rate option shall retrieve the maximum send or receive data
  * rate for multicast transports using the specified _socket_.
- * 
+ *
  * [Option value type] Integer
  * [Option value unit] kilobits per second
  * [Default value] 100
@@ -779,7 +779,7 @@ static VALUE context_socket (VALUE self_, VALUE type_)
  * size for the specified _socket_. A value of zero means that the OS default is
  * in effect. For details refer to your operating system documentation for the
  * SO_SNDBUF socket option.
- * 
+ *
  * [Option value type] Integer
  * [Option value unit] bytes
  * [Default value] 0
@@ -790,7 +790,7 @@ static VALUE context_socket (VALUE self_, VALUE type_)
  * size for the specified _socket_. A value of zero means that the OS default is
  * in effect. For details refer to your operating system documentation for the
  * SO_RCVBUF socket option.
- * 
+ *
  * [Option value type] Integer
  * [Option value unit] bytes
  * [Default value] 0
@@ -914,10 +914,10 @@ static VALUE socket_getsockopt (VALUE self_, VALUE option_)
     int rc = 0;
     VALUE retval;
     void * s;
-    
+
     Data_Get_Struct (self_, void, s);
     Check_Socket (s);
-  
+
     switch (NUM2INT (option_)) {
 #if ZMQ_VERSION >= 20100
 	case ZMQ_FD:
@@ -1039,7 +1039,7 @@ static VALUE socket_getsockopt (VALUE self_, VALUE option_)
         rb_raise (rb_eRuntimeError, "%s", zmq_strerror (EINVAL));
         return Qnil;
     }
-  
+
     return retval;
 }
 
@@ -1444,7 +1444,7 @@ static VALUE zmq_send_blocking (void* args_)
     struct zmq_send_recv_args *send_args = (struct zmq_send_recv_args *)args_;
 
     send_args->rc = zmq_send(send_args->socket, send_args->msg, send_args->flags);
-    
+
     return Qnil;
 }
 #endif
@@ -1487,7 +1487,7 @@ static VALUE zmq_send_blocking (void* args_)
 static VALUE socket_send (int argc_, VALUE* argv_, VALUE self_)
 {
     VALUE msg_, flags_;
-    
+
     rb_scan_args (argc_, argv_, "11", &msg_, &flags_);
 
     void * s;
@@ -1542,7 +1542,7 @@ static VALUE zmq_recv_blocking (void* args_)
     struct zmq_send_recv_args *recv_args = (struct zmq_send_recv_args *)args_;
 
     recv_args->rc = zmq_recv(recv_args->socket, recv_args->msg, recv_args->flags);
-    
+
     return Qnil;
 }
 #endif
@@ -1577,7 +1577,7 @@ static VALUE zmq_recv_blocking (void* args_)
 static VALUE socket_recv (int argc_, VALUE* argv_, VALUE self_)
 {
     VALUE flags_;
-    
+
     rb_scan_args (argc_, argv_, "01", &flags_);
 
     void * s;
@@ -1662,6 +1662,7 @@ void Init_zmq ()
     rb_define_method (context_type, "initialize", context_initialize, -1);
     rb_define_method (context_type, "socket", context_socket, 1);
     rb_define_method (context_type, "close", context_close, 0);
+    rb_define_method (context_type, "terminate", context_close, 0);
 
     socket_type = rb_define_class_under (zmq_module, "Socket", rb_cObject);
     rb_undef_alloc_func(socket_type);
@@ -1669,7 +1670,9 @@ void Init_zmq ()
     rb_define_method (socket_type, "setsockopt", socket_setsockopt, 2);
     rb_define_method (socket_type, "bind", socket_bind, 1);
     rb_define_method (socket_type, "connect", socket_connect, 1);
+    rb_define_method (socket_type, "send_string", socket_send, -1);
     rb_define_method (socket_type, "send", socket_send, -1);
+    rb_define_method (socket_type, "recv_string", socket_recv, -1);
     rb_define_method (socket_type, "recv", socket_recv, -1);
     rb_define_method (socket_type, "close", socket_close, 0);
 
@@ -1709,7 +1712,7 @@ void Init_zmq ()
 #ifdef ZMQ_DEALER
     rb_define_const (zmq_module, "XREQ", INT2NUM (ZMQ_DEALER));
     rb_define_const (zmq_module, "XREP", INT2NUM (ZMQ_ROUTER));
-    
+
     // Deprecated
     rb_define_const (zmq_module, "DEALER", INT2NUM (ZMQ_DEALER));
     rb_define_const (zmq_module, "ROUTER", INT2NUM (ZMQ_ROUTER));
